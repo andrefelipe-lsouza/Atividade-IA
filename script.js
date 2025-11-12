@@ -251,3 +251,17 @@ function recreateBoardFromSave() {
 
     console.log("Tabuleiro recriado com sucesso a partir do save!");
 }
+function saveScoreLocal(playerName) {
+  const score = {
+    nome: playerName,
+    tentativas: attempts,
+    data: new Date().toLocaleString()
+  };
+  
+  let scores = JSON.parse(localStorage.getItem('memoryScores')) || [];
+  scores.push(score);
+  scores.sort((a, b) => a.tentativas - b.tentativas);
+  
+  localStorage.setItem('memoryScores', JSON.stringify(scores));
+  console.log("Pontuação salva localmente:", score);
+}
