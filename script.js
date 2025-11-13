@@ -68,6 +68,7 @@ function checkForMatch() {
   // Incrementa o contador de tentativas
   attempts++;
   attemptsSpan.textContent = attempts;
+  saveGameState();
 
   // Verifica se os data-attributes das duas cartas são iguais
   let isMatch = firstCard.dataset.cardValue === secondCard.dataset.cardValue;
@@ -83,6 +84,7 @@ function disableCards() {
 
   // Incrementa o contador de pares
   matchedPairs++;
+  saveGameState();
   // Verifica se o jogo terminou (todos os pares encontrados)
   if (matchedPairs === nCards) {
     // Atraso para o jogador ver a última carta virar
@@ -99,7 +101,7 @@ function unflipCards() {
   setTimeout(() => {
     firstCard.classList.remove('flip');
     secondCard.classList.remove('flip');
-
+    saveGameState();
     resetBoard();
   }, 1500);
 }
@@ -117,7 +119,7 @@ function resetBoard() {
   });
 })();
 
-
+loadGameState();
 // Adiciona o evento de clique a cada uma das cartas
 cards.forEach(card => card.addEventListener('click', flipCard));
 
@@ -125,6 +127,43 @@ cards.forEach(card => card.addEventListener('click', flipCard));
 // ===================================================================
 // NOVO: FUNÇÕES DE FIM DE JOGO E SALVAMENTO
 // ===================================================================
+// =============================================================
+// MÉTODO DE PERSISTÊNCIA: SALVAR O ESTADO DO JOGO
+// =============================================================
+function saveGameState() {
+  const state = {
+    attempts,
+    matchedPairs,
+    cardsState: cards.map(card => ({
+      value: card.dataset.cardValue,
+      flipped: card.classList.contains('flip'),
+      disabled: !card.hasAttribute('onclick') && !card.onclick && !card.classList.contains('clickable')
+    }))
+  };
+  localStorage.setItem('memoryGameState', JSON.stringify(state));
+}
+// =============================================================
+// RESTAURA O ESTADO SALVO DO JOGO (SE EXISTIR)
+// =============================================================
+function loadGameState() {
+  const saved = localStorage.getItem('memoryGameState');
+  if (!saved) return;
+
+  const state = JSON.parse(saved);
+
+  attempts = state.attempts || 0;
+  matchedPairs = state.matchedPairs || 0;
+  attemptsSpan.textContent = attempts;
+
+  state.cardsState.forEach((savedCard, index) => {
+    const card = cards[index];
+    card.dataset.cardValue = savedCard.value;
+    if (savedCard.flipped) card.classList.add('flip');
+    if (savedCard.disabled) card.removeEventListener('click', flipCard);
+  });
+}
+
+
 
 function endGame() {
   // Desabilita o tabuleiro
@@ -134,12 +173,14 @@ function endGame() {
 
   if (playerName && playerName.trim() !== "") {
     // Chama o método de salvamento
-    //saveScoreByAjax(playerName);
+    saveScoreByAjax(playerName);
+    localStorage.removeItem('memoryGameState');
     // Para testar o método 2 (formulário), descomente a linha abaixo:
-    saveScoreByForm(playerName);
+    // saveScoreByForm(playerName);
   } else {
     // Se o usuário cancelar
     alert("Pontuação não salva. Reiniciando o jogo.");
+    localStorage.removeItem('memoryGameState');
     // MODIFICADO: Redireciona para a página de jogar
     window.location.href = 'index.php?page=jogar';
   }
@@ -148,7 +189,6 @@ function endGame() {
 /**
  * MÉTODO 1: Salvar pontuação usando AJAX (Fetch API)
  */
-/*
 function saveScoreByAjax(playerName) {
   const formData = new FormData();
   formData.append('nome', playerName);
@@ -183,12 +223,12 @@ function saveScoreByAjax(playerName) {
       window.location.href = 'index.php?page=jogar';
     });
 }
-    
+
 
 /**
  * MÉTODO 2: Salvar pontuação usando envio de Formulário Oculto (Comentado)
  */
-
+/*
 function saveScoreByForm(playerName) {
   console.log("Enviando (Formulário Oculto):", playerName, attempts);
 
@@ -201,67 +241,4 @@ function saveScoreByForm(playerName) {
   // para 'index.php?page=placar' após a submissão.
   document.getElementById('scoreForm').submit();
 }
-
-/**
- * Função que reconstrói o visual do jogo com base nos dados carregados.
- */
-function recreateBoardFromSave() {
-    console.log("Recriando tabuleiro a partir do estado salvo...");
-
-    // 1. Seleciona o container do tabuleiro (ajuste o ID conforme seu HTML)
-    const boardContainer = document.getElementById('game-board');
-    if (!boardContainer) {
-        console.error("Container #game-board não encontrado no HTML!");
-        return;
-    }
-
-    // 2. Limpa o tabuleiro atual
-    boardContainer.innerHTML = '';
-
-    // 3. Recria cada carta com base no estado salvo
-    gameState.boardCards.forEach(card => {
-        const cardElement = document.createElement('div');
-        cardElement.classList.add('card');
-        cardElement.dataset.id = card.id; // Útil para eventos de clique
-
-        // Frente da carta (ícone)
-        const front = document.createElement('div');
-        front.classList.add('front');
-        front.textContent = card.icon;
-
-        // Verso da carta (costas)
-        const back = document.createElement('div');
-        back.classList.add('back');
-
-        // Monta a carta
-        cardElement.appendChild(front);
-        cardElement.appendChild(back);
-
-        // Aplica estado visual conforme salvo
-        if (card.isFlipped) {
-            cardElement.classList.add('flipped');
-        }
-        if (card.isMatched) {
-            cardElement.classList.add('matched');
-        }
-
-        // Adiciona ao tabuleiro
-        boardContainer.appendChild(cardElement);
-    });
-
-    console.log("Tabuleiro recriado com sucesso a partir do save!");
-}
-function saveScoreLocal(playerName) {
-  const score = {
-    nome: playerName,
-    tentativas: attempts,
-    data: new Date().toLocaleString()
-  };
-  
-  let scores = JSON.parse(localStorage.getItem('memoryScores')) || [];
-  scores.push(score);
-  scores.sort((a, b) => a.tentativas - b.tentativas);
-  
-  localStorage.setItem('memoryScores', JSON.stringify(scores));
-  console.log("Pontuação salva localmente:", score);
-}
+*/
